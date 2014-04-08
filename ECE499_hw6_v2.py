@@ -103,43 +103,46 @@ while True:
     # img        = cv image in BGR format
 
     ts = tim.sim[0] #Get the time before any procecssing
-    cx1 = 0
+    screen_center = 0
 
     if i == 0:  #Opens file to write error values
 	centerError = open("centerError","w")
 	i= i+1  #Ensures this if statement isn't entered again
 
-    ####### Find blue and get contours #######
+    #Find blue object and its contours 
     img = cv2.cvtColor(vid2,cv2.COLOR_BGR2RGB)
     lower_blue = np.array([100,0,0],dtype=np.uint8)
     upper_blue = np.array([255,0,0],dtype=np.uint8)
-    mask3 = cv2.inRange(img,lower_blue,upper_blue)   
-    bcontours,hierarchy = cv2.findContours(mask3, 1, 2)
+    bcontours,hierarchy = cv2.findContours(cv2.inRange(img,lower_blue,upper_blue), 1, 2)
     
-    # If contours isn't empty, get center of object
+    #Get the center of the blue object
     if (bcontours != []):
 	cnt = bcontours[0]
 	M = cv2.moments(cnt)
-	cx1 = int(M['m10']/M['m00'])
-	if (cx1>=320): #if cx1 is to the right
-	    alpha = cx1-320 #see how far off from center it is
-	    print alpha
-	    ref.ref[0] = -alpha/500; #right wheel adjust by proportion
-	    ref.ref[1] = alpha/500; #left wheel
-	    r.put(ref);
+	screen_center = int(M['m10']/M['m00'])      
+	# if the center is to the right of the middle of the screen
+	if (screen_center>=320):
+	    # get the distance from the center of the object to the center of the screen
+	    dist = screen_center-320
+	    print dist  
+	    # adjust the right and left wheel
+	    ref.ref[0] = -dist/750; 
+	    ref.ref[1] = dist/750; 
+	    r.put(ref);          
+	# if the center is to the left of teh middle of the screen
     	else:
-	    alpha = 320 - cx1
-	    print alpha
-	    ref.ref[0] = alpha/500; #right wheel
-	    ref.ref[1] = -alpha/500; #left wheel
+            # adjust the wheels
+	    dist = 320 - screen_center
+	    print dist
+	    ref.ref[0] = dist/750; 
+	    ref.ref[1] = -dist/750;
 	    r.put(ref);
 
     [status, framesize] = t.get(tim, wait=False, last=True)
     tn = tim.sim[0]
     
-    #write difference between center of frame (320) and the cx1 values 
-    centerError.write('%s \n' %str(320 - cx1))
-
+    #write the error values into a file for plotting 
+    centerError.write('%s \n' %str(320 - screen_center))            
     if (.025 - (tn-ts))>=0:
         time.sleep(.025 - (tn-ts))
 
